@@ -1,0 +1,5 @@
+*.pcap
+dump*
+*.pyc
+__pycache__/
+*__dontAdd__*
