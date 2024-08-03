@@ -25,8 +25,8 @@ def reconstruct_packet(pkt: Packet):
                                  Returns None if the Ethernet layer is missing.
    """
     if Ether not in pkt:
-        print("[-] Skipping packet with missing Ethernet layer.")
-        return None  # or raise an exception
+        # print("[-] Skipping packet with missing Ethernet layer.")
+        raise ValueError("Packet missing Ethernet layer.")
 
     layers = [Ether(src=pkt[Ether].src, dst=pkt[Ether].dst)]
 
