@@ -61,6 +61,8 @@ def reconstruct_packet(pkt: Packet):
 def main(pcap_file_path: str = ''):
     '''replay
 
+Simple python script that uses Scapy for replaying intercepted network traffic from a pcap file.
+
 Usage:
     main.py <pcap_file_path>
     main.py (-h | --help)
