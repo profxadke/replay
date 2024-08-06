@@ -76,7 +76,7 @@ Options:
 
     '''
     if iface:
-        config.iface = iface
+        conf.iface = iface
     if pcap_file_path:
         packets = rdpcap(pcap_file_path)
         print(f"[+] Loaded {len(packets)} packets from {pcap_file_path}")
