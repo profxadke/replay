@@ -13,6 +13,7 @@ $ deactivate
 ```
 
 ---
+
 ```
 replay
 
@@ -23,4 +24,9 @@ Usage:
     main.py [--iface=<iface>|-i=<iface>] <pcap_file_path>
     main.py (-h | --help)
     main.py (-v | --version)
+
+Options:
+  -i=<iface> --iface=<iface>    Specify an interface to reply the packets on.
+  -h --help     Show this screen.
+  -v --version     Show version.
 ```
