@@ -2,10 +2,11 @@
 
 
 from scapy.packet import Packet
+from docopt import docopt
 from scapy.all import (
     rdpcap, sendp, Ether,
     IP, TCP, UDP, Raw, conf
-); from docopt import docopt
+); __version__ = '0.1.0'
 
 
 def reconstruct_packet(pkt: Packet):
@@ -94,7 +95,7 @@ Options:
 
 
 if __name__ == '__main__':
-    args = docopt(main.__doc__, version='0.0.1')
+    args = docopt(main.__doc__, version=__version__)
     _keys = tuple(args.keys())
     if '<pcap_file_path>' in _keys and '--iface' in _keys:
         main(args['--iface'], args['<pcap_file_path>'])
