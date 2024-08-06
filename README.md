@@ -11,3 +11,16 @@ $ pip install -r requirements.txt
 $ python3 ./main.py traffic_dump.pcapng
 $ deactivate
 ```
+
+---
+```
+replay
+
+Simple python script that uses Scapy for replaying intercepted network traffic from a pcap file.
+
+Usage:
+    main.py <pcap_file_path>
+    main.py [--iface=<iface>|-i=<iface>] <pcap_file_path>
+    main.py (-h | --help)
+    main.py (-v | --version)
+```
