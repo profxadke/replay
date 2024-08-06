@@ -2,11 +2,10 @@
 
 
 from scapy.packet import Packet
-from docopt import docopt
 from scapy.all import (
     rdpcap, sendp, Ether,
     IP, TCP, UDP, Raw, conf
-); conf.iface = 'lo'
+); from docopt import docopt
 
 
 def reconstruct_packet(pkt: Packet):
@@ -58,21 +57,25 @@ def reconstruct_packet(pkt: Packet):
     return new_pkt
 
 
-def main(pcap_file_path: str = ''):
+def main(iface: str = '', pcap_file_path: str = ''):
     '''replay
 
 Simple python script that uses Scapy for replaying intercepted network traffic from a pcap file.
 
 Usage:
     main.py <pcap_file_path>
+    main.py [--iface=<iface>|-i=<iface>] <pcap_file_path>
     main.py (-h | --help)
     main.py (-v | --version)
 
 Options:
+  -i=<iface> --iface=<iface>    Specify an interface to reply the packets on.
   -h --help     Show this screen.
   -v --version     Show version.
 
     '''
+    if iface:
+        config.iface = iface
     if pcap_file_path:
         packets = rdpcap(pcap_file_path)
         print(f"[+] Loaded {len(packets)} packets from {pcap_file_path}")
@@ -92,5 +95,11 @@ Options:
 
 if __name__ == '__main__':
     args = docopt(main.__doc__, version='0.0.1')
-    if '<pcap_file_path>' in tuple(args.keys()):
+    _keys = tuple(args.keys())
+    if '<pcap_file_path>' in _keys and '--iface' in _keys:
+        main(args['--iface'], args['<pcap_file_path>'])
+    elif '<pcap_file_path>' in _keys and '--iface' not in _keys:
         main(args['<pcap_file_path>'])
+    else:
+        print(main.__doc__)
+        exit(1)
