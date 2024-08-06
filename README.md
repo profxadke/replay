@@ -1,6 +1,6 @@
 # replay
 
-Simple python script that uses Scapy for replaying intercepted network traffic from a pcap file.
+Simple python script that uses Scapy for replaying intercepted network traffic from a pcap file.  **[NOTE: You need to be specific about `iface` as `lo` if you're replaying packets from localhost]**
 
 ### Just install scapy, then provide a pcap file to the script while running it as argument!
 ```py
