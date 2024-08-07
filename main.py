@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
+
 from scapy.packet import Packet
 from docopt import docopt
 from scapy.all import (
     rdpcap, sendp, Ether,
     IP, TCP, UDP, Raw, conf
-)
-__version__ = '0.1.1'
+); __version__ = '0.1.1'
 
-def reconstruct_packet(pkt: Packet, spoofed_ip: str = None):
+
+def reconstruct_packet(pkt: Packet, spoofed_ip: str = ''):
     """
     Reconstruct a packet by creating new layer objects with the same attributes as the original.
     Optionally spoof the source IP address.
@@ -54,7 +55,8 @@ def reconstruct_packet(pkt: Packet, spoofed_ip: str = None):
 
     return new_pkt
 
-def main(iface: str = '', pcap_file_path: str = '', spoofed_ip: str = None):
+
+def main(iface: str = '', pcap_file_path: str = '', spoofed_ip: str = ''):
     '''replay
 
 Simple python script that uses Scapy for replaying intercepted network traffic from a pcap file.
@@ -93,6 +95,7 @@ Options:
             except Exception as e:
                 print(f"Failed to send packet: {e}")
         print("[+] Replay complete.")
+
 
 if __name__ == '__main__':
     args = docopt(main.__doc__, version=__version__)
