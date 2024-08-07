@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 from scapy.packet import Packet
 from docopt import docopt
 from scapy.all import (
@@ -78,6 +77,10 @@ Options:
     if pcap_file_path:
         packets = rdpcap(pcap_file_path)
         print(f"[+] Loaded {len(packets)} packets from {pcap_file_path}")
+        
+        # Sort packets by timestamp (if available)
+        packets = sorted(packets, key=lambda pkt: pkt.time)
+        
         for pkt in packets:
             try:
                 # Filter out TCP packets with the ACK flag set
@@ -88,8 +91,12 @@ Options:
                 if new_pkt is None:
                     print("[-] Skipping packet with missing Ethernet layer")
                     continue
+                
+                # Print detailed packet info
                 print(f"[!] Sending pkt on {conf.iface}: {new_pkt.summary()}")
-                sendp(new_pkt, verbose=0)  # Use sendp for layer 2 packets (Ethernet)
+                print(new_pkt.show(dump=True))
+                
+                sendp(new_pkt, verbose=1)  # Use sendp for layer 2 packets (Ethernet)
                 print("[+] Above packet sent.")
             except Exception as e:
                 print(f"Failed to send packet: {e}")
