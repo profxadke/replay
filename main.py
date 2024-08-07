@@ -46,6 +46,11 @@ def reconstruct_packet(pkt: Packet):
 
     timestamp = __import__('time').time()
 
+    if IP in pkt:
+        del pkt[IP].chksum
+    if TCP in pkt:
+        del pkt[TCP].chksum
+
     if TCP in pkt:
         tcp = TCP(sport=pkt[TCP].sport, dport=pkt[TCP].dport, seq=pkt[TCP].seq,
                   ack=pkt[TCP].ack, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
