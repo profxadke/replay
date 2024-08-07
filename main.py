@@ -2,6 +2,7 @@
 
 from scapy.packet import Packet
 from docopt import docopt
+from time import time
 from scapy.all import (
     rdpcap, sendp, Ether,
     IP, TCP, UDP, Raw, conf
@@ -25,17 +26,17 @@ def reconstruct_packet(pkt: Packet):
     This function extracts the relevant layers (Ethernet, IP, TCP, UDP, Raw) from the original packet
     and creates new instances of these layers with the same attributes. This ensures that fresh objects
     are used for sending, which helps avoid issues with old checksums or other artifacts.
-    
+
     Parameters:
         pkt (scapy.packet.Packet): The original packet to reconstruct.
-    
+
     Returns:
-        scapy.packet.Packet or None: A new packet object constructed from the original layers. 
+        scapy.packet.Packet or None: A new packet object constructed from the original layers.
                                  Returns None if the Ethernet layer is missing.
     """
     if Ether not in pkt:
         # print("[-] Skipping packet with missing Ethernet layer.")
-        raise ValueError("Packet missing Ethernet layer.")
+        raise ValueError("[-] Packet missing Ethernet layer.")
 
     layers = [Ether(src=pkt[Ether].src, dst=pkt[Ether].dst)]
 
@@ -50,6 +51,15 @@ def reconstruct_packet(pkt: Packet):
                   ack=pkt[TCP].ack, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
                   flags=pkt[TCP].flags, window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
                   options=pkt[TCP].options)
+        # Update the TCP options if Timestamp is present
+        updated_options = []
+        for opt in tcp.options:
+            if opt[0] == 'Timestamp':
+                # Update the timestamp to the current time
+                updated_options.append(('Timestamp', (int(time()), int(time()))))
+            else:
+                updated_options.append(opt)
+        tcp.options = updated_options
         layers.append(tcp)
 
     if UDP in pkt:
@@ -63,6 +73,9 @@ def reconstruct_packet(pkt: Packet):
     new_pkt = layers[0]
     for layer in layers[1:]:
         new_pkt = new_pkt / layer
+
+    # Update the packet timestamp to the current time
+    new_pkt.time = time()
 
     return new_pkt
 
@@ -88,10 +101,10 @@ Options:
     if pcap_file_path:
         packets = rdpcap(pcap_file_path)
         print(f"[+] Loaded {len(packets)} packets from {pcap_file_path}")
-        
+
         # Sort packets by timestamp (if available)
         packets = sorted(packets, key=lambda pkt: pkt.time)
-        
+
         for pkt in packets:
             try:
                 # Filter out TCP packets with the ACK flag set
@@ -100,22 +113,24 @@ Options:
                 if TCP in pkt and pkt[TCP].flags & TSA:
                     pass
                 elif TCP in pkt and pkt[TCP].flags & ACK:
-                    print(f"[!] Ignoring pkt: {new_pkt.summary()} with ACK TCP flag.")
+                    print(f"[!] Ignoring pkt: {pkt.summary()} with ACK TCP flag.")
                     continue
 
                 new_pkt = reconstruct_packet(pkt)
                 if new_pkt is None:
                     print("[-] Skipping packet with missing Ethernet layer")
                     continue
-                
+
+                print(f"[!] Modified pkt info: {pkt.summary()}")
+                print(pkt.show(dump=True), end='\n'*2)
                 # Print detailed packet info
                 print(f"[!] Sending pkt on {conf.iface}: {new_pkt.summary()}")
                 print(new_pkt.show(dump=True))
-                
+
                 sendp(new_pkt, verbose=1)  # Use sendp for layer 2 packets (Ethernet)
                 print("[+] Above packet sent.")
             except Exception as e:
-                print(f"Failed to send packet: {e}")
+                print(f"[-] Failed to send packet: {e}")
         print("[+] Replay complete.")
 
 
