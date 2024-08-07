@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 from scapy.packet import Packet
-from docopt import docopt
-from time import time
 from scapy.all import (
     rdpcap, sendp, Ether,
     IP, TCP, UDP, Raw, conf
@@ -46,6 +44,8 @@ def reconstruct_packet(pkt: Packet):
                 ttl=pkt[IP].ttl, options=pkt[IP].options)
         layers.append(ip)
 
+    timestamp = __import__('time').time()
+
     if TCP in pkt:
         tcp = TCP(sport=pkt[TCP].sport, dport=pkt[TCP].dport, seq=pkt[TCP].seq,
                   ack=pkt[TCP].ack, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
@@ -56,7 +56,7 @@ def reconstruct_packet(pkt: Packet):
         for opt in tcp.options:
             if opt[0] == 'Timestamp':
                 # Update the timestamp to the current time
-                updated_options.append(('Timestamp', (int(time()), int(time()))))
+                updated_options.append(('Timestamp', (int(timestamp), int(timestamp))))
             else:
                 updated_options.append(opt)
         tcp.options = updated_options
@@ -75,7 +75,13 @@ def reconstruct_packet(pkt: Packet):
         new_pkt = new_pkt / layer
 
     # Update the packet timestamp to the current time
-    new_pkt.time = time()
+    new_pkt.time = timestamp
+
+    # Recalculate the checksums for IP and TCP layers
+    if IP in new_pkt:
+        del new_pkt[IP].chksum
+    if TCP in new_pkt:
+        del new_pkt[TCP].chksum
 
     return new_pkt
 
@@ -135,7 +141,7 @@ Options:
 
 
 if __name__ == '__main__':
-    args = docopt(main.__doc__, version=__version__)
+    args = __import__('docopt').docopt(main.__doc__, version=__version__)
     _keys = tuple(args.keys())
     if '<pcap_file_path>' in _keys and '--iface' in _keys:
         main(args['--iface'], args['<pcap_file_path>'])
