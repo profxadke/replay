@@ -9,6 +9,17 @@ from scapy.all import (
 ); __version__ = '0.1.0'
 
 
+FIN = 0x01
+SYN = 0x02
+RST = 0x04
+PSH = 0x08
+ACK = 0x10
+TSA = 0x18
+URG = 0x20
+ECE = 0x40
+CWR = 0x80
+
+
 def reconstruct_packet(pkt: Packet):
     """
     Reconstruct a packet by creating new layer objects with the same attributes as the original.
@@ -81,7 +92,12 @@ Options:
         for pkt in packets:
             try:
                 # Filter out TCP packets with the ACK flag set
-                if TCP in pkt and pkt[TCP].flags & 0x10:
+                if TCP in pkt and pkt[TCP].flags & SYN:
+                    pass
+                if TCP in pkt and pkt[TCP].flags & TSA:
+                    pass
+                elif TCP in pkt and pkt[TCP].flags & ACK:
+                    print(f"[!] Ignoring pkt: {new_pkt.summary()} with ACK TCP flag.")
                     continue
 
                 new_pkt = reconstruct_packet(pkt)
