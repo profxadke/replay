@@ -22,15 +22,14 @@ def reconstruct_packet(pkt: Packet):
     """
     Reconstruct a packet by creating new layer objects with the same attributes as the original.
     This function extracts the relevant layers (Ethernet, IP, TCP, UDP, Raw) from the original packet
-    and creates new instances of these layers with the same attributes. This ensures that fresh objects
-    are used for sending, which helps avoid issues with old checksums or other artifacts.
+    and creates new instances of these layers with updated attributes to make it appear as a fresh packet.
 
     Parameters:
         pkt (scapy.packet.Packet): The original packet to reconstruct.
 
     Returns:
         scapy.packet.Packet or None: A new packet object constructed from the original layers.
-                                 Returns None if the Ethernet layer is missing.
+                                     Returns None if the Ethernet layer is missing.
     """
     if Ether not in pkt:
         # print("[-] Skipping packet with missing Ethernet layer.")
@@ -40,55 +39,26 @@ def reconstruct_packet(pkt: Packet):
 
     if IP in pkt:
         ip = IP(src=pkt[IP].src, dst=pkt[IP].dst, proto=pkt[IP].proto, tos=pkt[IP].tos,
-                len=pkt[IP].len, id=pkt[IP].id, flags=pkt[IP].flags, frag=pkt[IP].frag,
-                ttl=pkt[IP].ttl, options=pkt[IP].options)
+                len=pkt[IP].len, id=RandInt(), flags=pkt[IP].flags, frag=pkt[IP].frag,
+                ttl=64, options=pkt[IP].options)  # Use a random IP ID and reset TTL
         layers.append(ip)
 
-    timestamp = __import__('time').time()
-
-    if IP in pkt:
-        del pkt[IP].chksum
     if TCP in pkt:
-        del pkt[TCP].chksum
-
-    if TCP in pkt:
-        tcp = TCP(sport=pkt[TCP].sport, dport=pkt[TCP].dport, seq=pkt[TCP].seq,
-                  ack=pkt[TCP].ack, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
-                  flags=pkt[TCP].flags, window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
-                  options=pkt[TCP].options)
-        # Update the TCP options if Timestamp is present
-        updated_options = []
-        for opt in tcp.options:
-            if opt[0] == 'Timestamp':
-                # Update the timestamp to the current time
-                updated_options.append(('Timestamp', (int(timestamp), int(timestamp))))
-            else:
-                updated_options.append(opt)
-        tcp.options = updated_options
+        tcp = TCP(sport=RandShort(), dport=pkt[TCP].dport, seq=RandInt(),
+                  ack=0, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
+                  flags='S', window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
+                  options=pkt[TCP].options)  # Set random source port and sequence number, and SYN flag
         layers.append(tcp)
 
     if UDP in pkt:
-        udp = UDP(sport=pkt[UDP].sport, dport=pkt[UDP].dport, len=pkt[UDP].len)
+        udp = UDP(sport=RandShort(), dport=pkt[UDP].dport, len=pkt[UDP].len)
         layers.append(udp)
 
     if Raw in pkt:
-        payload = Raw(pkt[Raw].load)
-        layers.append(payload)
+        raw = Raw(load=pkt[Raw].load)
+        layers.append(raw)
 
-    new_pkt = layers[0]
-    for layer in layers[1:]:
-        new_pkt = new_pkt / layer
-
-    # Update the packet timestamp to the current time
-    new_pkt.time = timestamp
-
-    # Recalculate the checksums for IP and TCP layers
-    if IP in new_pkt:
-        del new_pkt[IP].chksum
-    if TCP in new_pkt:
-        del new_pkt[TCP].chksum
-
-    return new_pkt
+    return layers[0] / layers[1] / layers[2] if len(layers) > 2 else layers[0] / layers[1]
 
 
 def main(iface: str = '', pcap_file_path: str = ''):
