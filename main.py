@@ -3,7 +3,8 @@
 from scapy.packet import Packet
 from scapy.all import (
     rdpcap, sendp, Ether,
-    IP, TCP, UDP, Raw, conf
+    IP, TCP, UDP, Raw, conf,
+    RandInt, RandShort
 ); __version__ = '0.1.0'
 
 
@@ -38,7 +39,7 @@ def reconstruct_packet(pkt: Packet):
 
     if IP in pkt:
         ip = IP(src=pkt[IP].src, dst=pkt[IP].dst, proto=pkt[IP].proto, tos=pkt[IP].tos,
-                len=pkt[IP].len, id=RandInt(), flags=pkt[IP].flags, frag=pkt[IP].frag,
+                len=pkt[IP].len, id=RandShort(), flags=pkt[IP].flags, frag=pkt[IP].frag,
                 ttl=64, options=pkt[IP].options)  # Use a random IP ID and reset TTL
         layers.append(ip)
 
