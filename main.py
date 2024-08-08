@@ -44,10 +44,16 @@ def reconstruct_packet(pkt: Packet):
         layers.append(ip)
 
     if TCP in pkt:
+        # Preserve the original flags but modify as needed
+        tcp_flags = pkt[TCP].flags
+        if tcp_flags & SYN:  # If it's a SYN packet, make adjustments for replay
+            tcp_flags = 'S'
+
         tcp = TCP(sport=RandShort(), dport=pkt[TCP].dport, seq=RandInt(),
-                  ack=0, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
-                  flags='S', window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
-                  options=pkt[TCP].options)  # Set random source port and sequence number, and SYN flag
+                  ack=0 if tcp_flags & SYN else pkt[TCP].ack,  # Set ack only if it's not SYN
+                  dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
+                  flags=tcp_flags, window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
+                  options=pkt[TCP].options)  # Set random source port and sequence number
         layers.append(tcp)
 
     if UDP in pkt:
