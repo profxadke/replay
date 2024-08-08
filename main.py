@@ -32,7 +32,6 @@ def reconstruct_packet(pkt: Packet):
                                      Returns None if the Ethernet layer is missing.
     """
     if Ether not in pkt:
-        # print("[-] Skipping packet with missing Ethernet layer.")
         raise ValueError("[-] Packet missing Ethernet layer.")
 
     layers = [Ether(src=pkt[Ether].src, dst=pkt[Ether].dst)]
@@ -44,14 +43,13 @@ def reconstruct_packet(pkt: Packet):
         layers.append(ip)
 
     if TCP in pkt:
-        # Preserve the original flags but modify as needed
+        # Preserve the original flags and adjust sequence/ack numbers
         tcp_flags = pkt[TCP].flags
-        if tcp_flags & SYN:  # If it's a SYN packet, make adjustments for replay
-            tcp_flags = 'S'
-
-        tcp = TCP(sport=RandShort(), dport=pkt[TCP].dport, seq=RandInt(),
-                  ack=0 if tcp_flags & SYN else pkt[TCP].ack,  # Set ack only if it's not SYN
-                  dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
+        seq = RandInt() if tcp_flags & SYN else pkt[TCP].seq
+        ack = 0 if tcp_flags & SYN else pkt[TCP].ack
+        
+        tcp = TCP(sport=RandShort(), dport=pkt[TCP].dport, seq=seq,
+                  ack=ack, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
                   flags=tcp_flags, window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
                   options=pkt[TCP].options)  # Set random source port and sequence number
         layers.append(tcp)
