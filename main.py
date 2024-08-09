@@ -23,7 +23,7 @@ def reconstruct_packet(pkt: Packet):
     """
     Reconstruct a packet by creating new layer objects with the same attributes as the original.
     This function extracts the relevant layers (Ethernet, IP, TCP, UDP, Raw) from the original packet
-    and creates new instances of these layers with updated attributes to make it appear as a fresh packet.
+    and creates new instances of these layers with updated attributes to return a fresh packet.
 
     Parameters:
         pkt (scapy.packet.Packet): The original packet to reconstruct.
@@ -35,35 +35,29 @@ def reconstruct_packet(pkt: Packet):
     if Ether not in pkt:
         raise ValueError("[-] Packet missing Ethernet layer.")
 
-    layers = [Ether(src=pkt[Ether].src, dst=pkt[Ether].dst)]
+    # Create new instances of Ethernet, IP, TCP, UDP, and Raw layers with updated attributes
+    new_eth = Ether(src=pkt[Ether].src, dst=pkt[Ether].dst)
 
-    if IP in pkt:
-        ip = IP(src=pkt[IP].src, dst=pkt[IP].dst, proto=pkt[IP].proto, tos=pkt[IP].tos,
+    new_ip = IP(src=pkt[IP].src, dst=pkt[IP].dst, proto=pkt[IP].proto, tos=pkt[IP].tos,
                 len=pkt[IP].len, id=RandShort(), flags=pkt[IP].flags, frag=pkt[IP].frag,
                 ttl=64, options=pkt[IP].options)  # Use a random IP ID and reset TTL
-        layers.append(ip)
 
-    if TCP in pkt:
-        # Preserve the original flags and adjust sequence/ack numbers
-        tcp_flags = pkt[TCP].flags
-        seq = RandInt() if tcp_flags & SYN else pkt[TCP].seq
-        ack = 0 if tcp_flags & SYN else pkt[TCP].ack
-        
-        tcp = TCP(sport=RandShort(), dport=pkt[TCP].dport, seq=seq,
-                  ack=ack, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
-                  flags=tcp_flags, window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
+    new_tcp = TCP(sport=RandShort(), dport=pkt[TCP].dport, seq=RandInt(),
+                  ack=0, dataofs=pkt[TCP].dataofs, reserved=pkt[TCP].reserved,
+                  flags=pkt[TCP].flags, window=pkt[TCP].window, urgptr=pkt[TCP].urgptr,
                   options=pkt[TCP].options)  # Set random source port and sequence number
-        layers.append(tcp)
 
-    if UDP in pkt:
-        udp = UDP(sport=RandShort(), dport=pkt[UDP].dport, len=pkt[UDP].len)
-        layers.append(udp)
+    new_udp = UDP(sport=RandShort(), dport=pkt[UDP].dport, len=pkt[UDP].len)
 
-    if Raw in pkt:
-        raw = Raw(load=pkt[Raw].load)
-        layers.append(raw)
+    new_raw = Raw(load=pkt[Raw].load)
 
-    return layers[0] / layers[1] / layers[2] if len(layers) > 2 else layers[0] / layers[1]
+    # Construct the fresh packet using the new layers
+    if IP in pkt and TCP in pkt:
+        return new_eth / new_ip / new_tcp / new_raw
+    elif IP in pkt and UDP in pkt:
+        return new_eth / new_ip / new_udp / new_raw
+    else:
+        return new_eth / new_raw
 
 
 def main(iface: str = '', pcap_file_path: str = ''):
